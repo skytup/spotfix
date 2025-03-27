@@ -1,3 +1,5 @@
+import './Gallery.css';
+
 function Gallery() {
   const galleryItems = [
     {

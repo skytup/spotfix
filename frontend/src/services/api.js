@@ -41,16 +41,17 @@ export const auth = {
   login: (credentials) => api.post('/auth/login', credentials),
   register: (userData) => api.post('/auth/register', userData),
   logout: () => api.post('/auth/logout'),
-  getProfile: () => api.get('/auth/profile'),
+  getCurrentUser: () => api.get('/auth/me'),
 };
 
 // Issues endpoints
 export const issues = {
   getAll: () => api.get('/issues'),
   getById: (id) => api.get(`/issues/${id}`),
-  create: (issueData) => api.post('/issues', issueData),
-  update: (id, issueData) => api.put(`/issues/${id}`, issueData),
+  create: (data) => api.post('/issues', data),
+  update: (id, data) => api.put(`/issues/${id}`, data),
   delete: (id) => api.delete(`/issues/${id}`),
+  search: (query) => api.get('/issues/search', { params: { query } }),
   uploadImage: (formData) => api.post('/issues/upload', formData),
 };
 
