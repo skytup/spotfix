@@ -3,19 +3,19 @@ import './Gallery.css';
 function Gallery() {
   const galleryItems = [
     {
-      image: '/assets/pic1.jpg',
+      image: 'https://wallpaperaccess.com/full/391995.jpg ',
       title: 'Report Any Issues'
     },
     {
-      image: '/assets/pic2.jpg',
+      image: 'https://wallpaperaccess.com/full/283001.jpg',
       title: 'Upvote the Work'
     },
     {
-      image: '/assets/pic3.jpg',
+      image: 'https://wallpaperaccess.com/full/549276.jpg',
       title: 'Suggest improvements'
     },
     {
-      image: '/thumbnail.webp',
+      image: 'https://wallpaperaccess.com/full/13703987.jpg',
       title: 'Earn Points'
     }
   ];

@@ -13,8 +13,8 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  useTheme,
-  useMediaQuery,
+  // useTheme,
+  // useMediaQuery,
   CircularProgress,
 } from '@mui/material';
 import Header from './components/Header';
@@ -30,6 +30,7 @@ import Register from './components/Register';
 import About from './components/About';
 import Contact from './components/Contact';
 import { auth } from './services/api';
+import spotFixLogo from './assets/spot-fix.png';
 import './App.css';
 
 const theme = createTheme({
@@ -104,13 +105,9 @@ function App() {
   }, []);
 
   const handleLogin = async (credentials) => {
-    try {
-      const response = await auth.login(credentials);
-      localStorage.setItem('token', response.data.token);
-      setUser(response.data.user);
-    } catch (error) {
-      throw error;
-    }
+    const response = await auth.login(credentials);
+    localStorage.setItem('token', response.data.token);
+    setUser(response.data.user);
   };
 
   const handleLogout = async () => {
@@ -130,10 +127,11 @@ function App() {
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          minHeight: '100vh',
+          height: '100vh',
+          width: '100vw',
         }}
       >
-        <div>Loading...</div>
+        <CircularProgress />
       </Box>
     );
   }
@@ -147,6 +145,8 @@ function App() {
             display: 'flex',
             flexDirection: 'column',
             minHeight: '100vh',
+            width: '100vw',
+            overflow: 'hidden'
           }}
         >
           <Header 
@@ -155,19 +155,39 @@ function App() {
             onLogout={handleLogout}
           />
           
-          <Box component="main" sx={{ flexGrow: 1 }}>
+          <Box 
+            component="main" 
+            className="main-content"
+            sx={{ 
+              flexGrow: 1,
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
             <Routes>
               <Route path="/login" element={
-                !user ? <Login onLogin={handleLogin} /> : <Navigate to="/" />
+                <Box className="container-full-height">
+                  {!user ? <Login onLogin={handleLogin} /> : <Navigate to="/" />}
+                </Box>
               } />
               <Route path="/register" element={
-                !user ? <Register /> : <Navigate to="/" />
+                <Box className="container-full-height">
+                  {!user ? <Register /> : <Navigate to="/" />}
+                </Box>
               } />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
+              <Route path="/about" element={
+                <Box className="container-full-height">
+                  <About />
+                </Box>
+              } />
+              <Route path="/contact" element={
+                <Box className="container-full-height">
+                  <Contact />
+                </Box>
+              } />
               <Route path="/" element={
-                <Box sx={{ py: 4 }}>
-                  <Container maxWidth="lg">
+                <Box className="container-full-height" sx={{ py: 4 }}>
+                  <Container maxWidth="lg" sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                     <section className="intro">
                       <Typography
                         variant="h3"
@@ -199,8 +219,8 @@ function App() {
                           maxWidth: '90%',
                           borderRadius: '10px'
                         }}
-                        src="/spot-fix.png"
-                        alt="logo"
+                        src={spotFixLogo}
+                        alt="SpotFix Logo"
                       />
                     </Box>
 
@@ -227,16 +247,7 @@ function App() {
 
           <Box sx={{ textAlign: 'center', py: 4, bgcolor: 'background.paper' }}>
             <Container maxWidth="lg">
-              <img
-                style={{
-                  width: 'auto',
-                  margin: '10px 0px',
-                  maxWidth: '80%',
-                  borderRadius: '10px'
-                }}
-                src="https://cdn130.picsart.com/248528866013212.png"
-                alt="Under Construction"
-              />
+              
               <iframe
                 style={{ maxWidth: '90%' }}
                 width="693"

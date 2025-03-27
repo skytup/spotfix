@@ -308,3 +308,34 @@ body {
     opacity: 1;
   }
 }
+
+/* Ensure all parent elements take full height */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Prevent content from being hidden behind the header */
+.main-content {
+  min-height: calc(100vh - 64px); /* Subtract header height */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Remove any unwanted margins */
+* {
+  box-sizing: border-box;
+}
+
+/* Make container take full height */
+.container-full-height {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
