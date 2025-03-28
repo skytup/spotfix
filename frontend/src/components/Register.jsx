@@ -8,6 +8,7 @@ import {
   Typography,
   Box,
   Alert,
+  CircularProgress,
 } from '@mui/material';
 import { auth } from '../services/api';
 
@@ -27,16 +28,27 @@ function Register() {
       ...formData,
       [e.target.name]: e.target.value,
     });
+    // Clear error when user starts typing
+    if (error) setError('');
+  };
+
+  const validateForm = () => {
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long');
+      return false;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return false;
+    }
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
+    if (!validateForm()) return;
 
     setLoading(true);
 
@@ -46,9 +58,17 @@ function Register() {
         email: formData.email,
         password: formData.password,
       });
-      navigate('/login');
+      
+      // Show success message and redirect to login
+      navigate('/login', { 
+        state: { message: 'Registration successful! Please login with your credentials.' }
+      });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      console.error('Registration error:', err);
+      setError(
+        err.response?.data?.message || 
+        'Registration failed. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -57,8 +77,21 @@ function Register() {
   return (
     <Container maxWidth="sm">
       <Box sx={{ mt: 8, mb: 4 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Typography variant="h4" component="h1" gutterBottom align="center">
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            p: 4,
+            backgroundColor: 'background.paper',
+            borderRadius: 2,
+          }}
+        >
+          <Typography 
+            variant="h4" 
+            component="h1" 
+            gutterBottom 
+            align="center"
+            sx={{ fontWeight: 600 }}
+          >
             Create Account
           </Typography>
           
@@ -78,6 +111,7 @@ function Register() {
               margin="normal"
               required
               autoComplete="name"
+              autoFocus
             />
 
             <TextField
@@ -102,6 +136,7 @@ function Register() {
               margin="normal"
               required
               autoComplete="new-password"
+              helperText="Password must be at least 6 characters long"
             />
 
             <TextField
@@ -122,10 +157,27 @@ function Register() {
               variant="contained"
               color="primary"
               size="large"
-              sx={{ mt: 3 }}
+              sx={{ 
+                mt: 3,
+                height: 48,
+                position: 'relative'
+              }}
               disabled={loading}
             >
-              {loading ? 'Creating Account...' : 'Register'}
+              {loading ? (
+                <CircularProgress 
+                  size={24} 
+                  sx={{ 
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    marginTop: '-12px',
+                    marginLeft: '-12px'
+                  }}
+                />
+              ) : (
+                'Create Account'
+              )}
             </Button>
           </form>
 

@@ -5,7 +5,19 @@ const router = express.Router();
 
 // Get all issues
 router.get('/', (req, res) => {
-  res.json(sampleIssues);
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 10;
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+
+  const paginatedIssues = sampleIssues.slice(startIndex, endIndex);
+  
+  res.json({
+    issues: paginatedIssues,
+    total: sampleIssues.length,
+    page,
+    limit
+  });
 });
 
 // Search issues

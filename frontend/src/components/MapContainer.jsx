@@ -1,439 +1,277 @@
-import { useState, useEffect, useRef } from 'react';
-import { MapContainer as LeafletMap, TileLayer, Marker, Popup, useMap, ZoomControl } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import {
-  Box,
-  Paper,
-  IconButton,
-  Tooltip,
-  TextField,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Rating,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Typography,
-  Autocomplete,
-} from '@mui/material';
-import SatelliteIcon from '@mui/icons-material/Satellite';
-import MapIcon from '@mui/icons-material/Map';
+import { useState, useCallback, useRef } from 'react';
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+import { Box, Typography, CircularProgress, IconButton, TextField, InputAdornment } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import { issues } from '../services/api';
+import SearchIcon from '@mui/icons-material/Search';
 
-// Fix for default marker icons in React-Leaflet
-const icon = new L.Icon({
-  iconUrl: '/marker-icon.png',
-  iconRetinaUrl: '/marker-icon-2x.png',
-  shadowUrl: '/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+const mapContainerStyle = {
+  width: '100%',
+  height: '400px',
+  borderRadius: '8px',
+  boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
+};
 
-const issueIcon = new L.Icon({
-  iconUrl: '/marker-icon-red.png',
-  iconRetinaUrl: '/marker-icon-red-2x.png',
-  shadowUrl: '/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41]
-});
+const defaultCenter = {
+  lat: 28.9691566,
+  lng: 77.7358971
+};
 
-L.Marker.prototype.options.icon = icon;
-
-function MapController({ center, zoom }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    map.setView(center, zoom);
-  }, [center, zoom, map]);
-
-  return null;
-}
-
-function MapContainer() {
-  const [mapType, setMapType] = useState('streets');
-  const [markers, setMarkers] = useState([]);
-  const [center, setCenter] = useState([0, 0]);
-  const [zoom, setZoom] = useState(13);
-  const [locationSearch, setLocationSearch] = useState('');
-  const [isIssueFormOpen, setIsIssueFormOpen] = useState(false);
-  const [selectedLocation, setSelectedLocation] = useState(null);
-  const [tempMarker, setTempMarker] = useState(null);
-  const [issueForm, setIssueForm] = useState({
-    title: '',
-    description: '',
-    category: '',
-    priority: 3,
-    image: null,
-  });
-  const mapRef = useRef(null);
-
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setCenter([position.coords.latitude, position.coords.longitude]);
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          setCenter([40.7128, -74.0060]);
-        }
-      );
+const mapOptions = {
+  mapTypeControl: true,
+  streetViewControl: false,
+  fullscreenControl: true,
+  zoomControl: true,
+  mapTypeId: 'hybrid',
+  styles: [
+    {
+      featureType: 'poi.school',
+      elementType: 'geometry',
+      stylers: [{ color: '#c5e8ff' }]
+    },
+    {
+      featureType: 'poi.school',
+      elementType: 'labels',
+      stylers: [{ visibility: 'on' }]
     }
+  ]
+};
 
-    const fetchIssues = async () => {
-      try {
-        const response = await issues.getAll();
-        setMarkers(response.data);
-      } catch (error) {
-        console.error('Error fetching issues:', error);
-      }
+function MapContainer({ onMapClick, issues = [] }) {
+  const [userLocation, setUserLocation] = useState(null);
+  const [map, setMap] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [tempMarker, setTempMarker] = useState(null);
+  const placesService = useRef(null);
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: ['places']
+  });
+
+  const clearTempMarker = useCallback(() => {
+    if (tempMarker) {
+      tempMarker.setMap(null);
+      setTempMarker(null);
+    }
+  }, [tempMarker]);
+
+  const handleMapClick = useCallback((e) => {
+    clearTempMarker();
+    
+    const newMarker = new window.google.maps.Marker({
+      position: e.latLng,
+      map: map,
+      icon: {
+        url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+          '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4285f4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>'
+        ),
+        scaledSize: new window.google.maps.Size(40, 40)
+      },
+      animation: window.google.maps.Animation.DROP
+    });
+
+    setTempMarker(newMarker);
+    onMapClick(e.latLng);
+  }, [map, clearTempMarker, onMapClick]);
+
+  const handleSearch = useCallback(() => {
+    if (!map || !searchQuery.trim() || !placesService.current) return;
+
+    const request = {
+      query: searchQuery,
+      fields: ['name', 'geometry']
     };
 
-    fetchIssues();
-  }, []);
+    placesService.current.findPlaceFromQuery(request, (results, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
+        const place = results[0];
+        const location = place.geometry.location;
 
-  const handleMapClick = (e) => {
-    const newLocation = e.latlng;
-    setSelectedLocation(newLocation);
-    setTempMarker(newLocation);
-    setIsIssueFormOpen(true);
-  };
-
-  const handleIssueSubmit = async () => {
-    try {
-      const newIssue = {
-        ...issueForm,
-        latitude: selectedLocation.lat,
-        longitude: selectedLocation.lng,
-      };
-      const response = await issues.create(newIssue);
-      setMarkers([...markers, response.data]);
-      setIsIssueFormOpen(false);
-      setTempMarker(null);
-      setIssueForm({
-        title: '',
-        description: '',
-        category: '',
-        priority: 3,
-        image: null,
-      });
-    } catch (error) {
-      console.error('Error creating issue:', error);
-    }
-  };
-
-  const handleLocationSearch = async (value) => {
-    if (!value) return;
-    
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}`
-      );
-      const data = await response.json();
-      
-      if (data.length > 0) {
-        const location = data[0];
-        setCenter([parseFloat(location.lat), parseFloat(location.lon)]);
-        setZoom(16);
+        map.setCenter(location);
+        map.setZoom(16);
+        clearTempMarker();
       }
-    } catch (error) {
-      console.error('Error searching location:', error);
-    }
-  };
+    });
+  }, [map, searchQuery, clearTempMarker]);
 
-  const toggleMapType = () => {
-    setMapType(mapType === 'streets' ? 'satellite' : 'streets');
-  };
+  const centerOnUserLocation = useCallback(() => {
+    if (!map || !userLocation) return;
+    map.setCenter(userLocation);
+    map.setZoom(16);
+  }, [map, userLocation]);
 
-  const handleLocateMe = () => {
+  const onLoad = useCallback((map) => {
+    setMap(map);
+    placesService.current = new window.google.maps.places.PlacesService(map);
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setCenter([position.coords.latitude, position.coords.longitude]);
-          setZoom(16);
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setUserLocation(location);
+          
+          const distance = getDistance(location, defaultCenter);
+          if (distance < 10) {
+            map.setCenter(location);
+          }
         },
-        (error) => {
-          console.error('Error getting location:', error);
+        () => {
+          console.error('Error getting location');
         }
       );
     }
+  }, []);
+
+  const getDistance = (p1, p2) => {
+    const R = 6371;
+    const dLat = deg2rad(p2.lat - p1.lat);
+    const dLon = deg2rad(p2.lng - p1.lng);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(deg2rad(p1.lat)) * Math.cos(deg2rad(p2.lat)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
   };
 
+  const deg2rad = (deg) => {
+    return deg * (Math.PI / 180);
+  };
+
+  if (loadError) {
+    return (
+      <Box sx={{ p: 3, textAlign: 'center' }}>
+        <Typography color="error">
+          Error loading maps. Please check your internet connection.
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!isLoaded) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        position: 'relative',
-        height: { xs: '400px', sm: '500px', md: '600px' },
-        borderRadius: 2,
-        overflow: 'hidden',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-      }}
-    >
-      <Box
-        sx={{
-          position: 'absolute',
-          top: 16,
-          left: 16,
-          right: 16,
-          zIndex: 1000,
-          display: 'flex',
-          gap: 2,
-        }}
-      >
+    <Box sx={{ position: 'relative', mb: 3 }}>
+      <Box sx={{ 
+        position: 'absolute', 
+        top: 10, 
+        left: 10, 
+        zIndex: 1,
+        display: 'flex',
+        gap: 1,
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        padding: '8px',
+        borderRadius: '4px',
+        boxShadow: '0 2px 6px rgba(0,0,0,0.1)'
+      }}>
         <TextField
+          size="small"
           placeholder="Search location..."
-          value={locationSearch}
-          onChange={(e) => setLocationSearch(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleLocationSearch(locationSearch)}
-          sx={{
-            flex: 1,
-            bgcolor: 'background.paper',
-            borderRadius: 1,
-            '& .MuiOutlinedInput-root': {
-              borderRadius: 1,
-            },
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+          InputProps={{
+            endAdornment: (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={handleSearch}>
+                  <SearchIcon />
+                </IconButton>
+              </InputAdornment>
+            ),
           }}
+          sx={{ backgroundColor: 'white' }}
         />
-        <Button
-          variant="contained"
-          onClick={() => handleLocationSearch(locationSearch)}
+      </Box>
+
+      <GoogleMap
+        mapContainerStyle={mapContainerStyle}
+        center={defaultCenter}
+        zoom={16}
+        options={mapOptions}
+        onLoad={onLoad}
+        onClick={handleMapClick}
+      >
+        {userLocation && (
+          <Marker
+            position={userLocation}
+            icon={{
+              url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+                '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="#4285f4" stroke="#ffffff" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3" fill="white"/></svg>'
+              ),
+              scaledSize: new window.google.maps.Size(24, 24)
+            }}
+            title="Your Location"
+          />
+        )}
+        
+        {issues.map((issue) => (
+          <Marker
+            key={issue.id}
+            position={{ lat: issue.lat, lng: issue.lng }}
+            icon={{
+              path: window.google.maps.SymbolPath.CIRCLE,
+              fillColor: issue.severity === 'high' ? '#f44336' : 
+                        issue.severity === 'medium' ? '#ff9800' : '#4caf50',
+              fillOpacity: 0.6,
+              strokeWeight: 2,
+              strokeColor: '#ffffff',
+              scale: 10
+            }}
+            title={issue.description}
+          />
+        ))}
+      </GoogleMap>
+      
+      <Box sx={{
+        position: 'absolute',
+        bottom: '1rem',
+        right: '1rem',
+        zIndex: 1
+      }}>
+        <IconButton
+          onClick={centerOnUserLocation}
           sx={{
-            borderRadius: 1,
-            textTransform: 'none',
-            fontWeight: 600,
+            backgroundColor: 'white',
+            boxShadow: '0 2px 6px rgba(0,0,0,0.1)',
+            '&:hover': {
+              backgroundColor: 'white',
+            }
           }}
         >
-          Search
-        </Button>
+          <LocationOnIcon />
+        </IconButton>
       </Box>
-
-      <LeafletMap
-        center={center}
-        zoom={zoom}
-        style={{ height: '100%', width: '100%' }}
-        onClick={handleMapClick}
-        ref={mapRef}
-        zoomControl={false}
-        maxZoom={19}
-      >
-        <MapController center={center} zoom={zoom} />
-        <ZoomControl position="bottomright" />
-        
-        {mapType === 'streets' ? (
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
-        ) : (
-          <TileLayer
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            attribution='&copy; <a href="https://www.esri.com/">Esri</a>'
-          />
-        )}
-
-        {markers.map((marker) => (
-          <Marker
-            key={marker._id}
-            position={[marker.latitude, marker.longitude]}
-            icon={issueIcon}
-          >
-            <Popup>
-              <div>
-                <Typography variant="h6">{marker.title}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {marker.description}
-                </Typography>
-                <Typography variant="body2">
-                  Priority: {marker.priority}/5
-                </Typography>
-                <Typography variant="body2">
-                  Category: {marker.category}
-                </Typography>
-                {marker.image && (
-                  <img
-                    src={marker.image}
-                    alt={marker.title}
-                    style={{ maxWidth: '100%', height: 'auto', marginTop: '8px' }}
-                  />
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        ))}
-
-        {tempMarker && (
-          <Marker position={[tempMarker.lat, tempMarker.lng]} icon={icon}>
-            <Popup>Click 'Report Issue' to report a problem at this location</Popup>
-          </Marker>
-        )}
-      </LeafletMap>
 
       <Box
         sx={{
           position: 'absolute',
-          top: 80,
-          right: 16,
+          bottom: '1rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          bgcolor: 'rgba(255, 255, 255, 0.8)',
+          p: '0.5rem 1rem',
+          borderRadius: '8px',
+          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
           display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-          zIndex: 1000,
+          alignItems: 'center',
+          gap: 1
         }}
       >
-        <Tooltip title={mapType === 'streets' ? 'Switch to Satellite View' : 'Switch to Street View'}>
-          <IconButton
-            onClick={toggleMapType}
-            sx={{
-              bgcolor: 'background.paper',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-              '&:hover': {
-                bgcolor: 'background.paper',
-                transform: 'scale(1.05)',
-              },
-            }}
-          >
-            {mapType === 'streets' ? <SatelliteIcon /> : <MapIcon />}
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Locate Me">
-          <IconButton
-            onClick={handleLocateMe}
-            sx={{
-              bgcolor: 'background.paper',
-              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-              '&:hover': {
-                bgcolor: 'background.paper',
-                transform: 'scale(1.05)',
-              },
-            }}
-          >
-            <LocationOnIcon />
-          </IconButton>
-        </Tooltip>
+        <Typography variant="body2">
+          Click on the map to report an issue
+        </Typography>
       </Box>
-
-      <Dialog 
-        open={isIssueFormOpen} 
-        onClose={() => {
-          setIsIssueFormOpen(false);
-          setTempMarker(null);
-        }}
-        maxWidth="sm" 
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-          }
-        }}
-      >
-        <DialogTitle sx={{ pb: 1 }}>Report New Issue</DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label="Title"
-            fullWidth
-            value={issueForm.title}
-            onChange={(e) => setIssueForm({ ...issueForm, title: e.target.value })}
-            sx={{ mt: 1 }}
-          />
-          <TextField
-            margin="dense"
-            label="Description"
-            fullWidth
-            multiline
-            rows={4}
-            value={issueForm.description}
-            onChange={(e) => setIssueForm({ ...issueForm, description: e.target.value })}
-            sx={{ mt: 2 }}
-          />
-          <FormControl fullWidth margin="dense" sx={{ mt: 2 }}>
-            <InputLabel>Category</InputLabel>
-            <Select
-              value={issueForm.category}
-              onChange={(e) => setIssueForm({ ...issueForm, category: e.target.value })}
-            >
-              <MenuItem value="infrastructure">Infrastructure</MenuItem>
-              <MenuItem value="environment">Environment</MenuItem>
-              <MenuItem value="safety">Safety</MenuItem>
-              <MenuItem value="other">Other</MenuItem>
-            </Select>
-          </FormControl>
-          <Box sx={{ mt: 3 }}>
-            <Typography component="legend" sx={{ mb: 1 }}>Priority</Typography>
-            <Rating
-              value={issueForm.priority}
-              onChange={(_, newValue) => setIssueForm({ ...issueForm, priority: newValue })}
-              sx={{ color: 'primary.main' }}
-            />
-          </Box>
-          <Button
-            variant="outlined"
-            component="label"
-            fullWidth
-            sx={{ 
-              mt: 3,
-              py: 1.5,
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 600,
-            }}
-          >
-            Upload Image
-            <input
-              type="file"
-              hidden
-              accept="image/*"
-              onChange={(e) => setIssueForm({ ...issueForm, image: e.target.files[0] })}
-            />
-          </Button>
-        </DialogContent>
-        <DialogActions sx={{ p: 2, pt: 0 }}>
-          <Button 
-            onClick={() => {
-              setIsIssueFormOpen(false);
-              setTempMarker(null);
-            }}
-            sx={{ 
-              px: 3,
-              py: 1,
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 600,
-            }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleIssueSubmit} 
-            variant="contained"
-            sx={{ 
-              px: 3,
-              py: 1,
-              borderRadius: 2,
-              textTransform: 'none',
-              fontWeight: 600,
-            }}
-          >
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Paper>
+    </Box>
   );
 }
 
