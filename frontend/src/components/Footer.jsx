@@ -127,8 +127,8 @@ function Footer() {
                 key={index}
                 component="a"
                 href={social.url}
-                target="_blank"
-                rel="noopener noreferrer"
+            target="_blank"
+            rel="noopener noreferrer"
                 sx={{
                   color: 'text.secondary',
                   '&:hover': {

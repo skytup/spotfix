@@ -87,6 +87,8 @@ function IssueList() {
   };
 
   const getSeverityColor = (severity) => {
+    if (!severity) return 'default';
+    
     switch (severity.toLowerCase()) {
       case 'high':
         return 'error';

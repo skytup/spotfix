@@ -24,24 +24,10 @@ function Login({ onLogin }) {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
-      }
-
-      onLogin(data.token, data.user);
+      const response = await onLogin(formData);
       navigate('/');
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
@@ -65,7 +51,6 @@ function Login({ onLogin }) {
               required
             />
           </div>
-
           <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
@@ -77,19 +62,13 @@ function Login({ onLogin }) {
               required
             />
           </div>
-
-          <button 
-            type="submit" 
-            className="auth-button"
-            disabled={loading}
-          >
+          <button type="submit" disabled={loading}>
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-
         <div className="auth-links">
-          <Link to="/auth/forgot-password">Forgot Password?</Link>
-          <Link to="/auth/signup">Don't have an account? Sign up</Link>
+          <Link to="/register">Don't have an account? Register</Link>
+          <Link to="/reset-password">Forgot password?</Link>
         </div>
       </div>
     </div>

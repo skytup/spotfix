@@ -1,56 +1,68 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
+  Button,
   FormControl,
   FormLabel,
   RadioGroup,
   FormControlLabel,
   Radio,
-  Select,
-  MenuItem,
-  Button,
   Box,
-  IconButton,
   Typography,
+  IconButton,
+  Alert,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import ImageIcon from '@mui/icons-material/Image';
+import { issues } from '../services/api';
 
-const categories = [
-  { value: 'infrastructure', label: 'Infrastructure' },
-  { value: 'cleanliness', label: 'Cleanliness' },
-  { value: 'safety', label: 'Safety' },
-];
-
-function IssueForm({ isOpen, onClose, onSubmit, location }) {
+function IssueForm({ open, onClose, location }) {
   const [formData, setFormData] = useState({
+    title: '',
     description: '',
-    category: 'infrastructure',
-    severity: 'low',
-    image: null,
+    category: '',
+    severity: 'medium',
+    images: [],
   });
   const [imagePreview, setImagePreview] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        title: '',
+        description: '',
+        category: '',
+        severity: 'medium',
+        images: [],
+      });
+      setImagePreview(null);
+      setError('');
+      setSuccess(false);
+    }
+  }, [open]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+    if (error) setError('');
   };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData(prev => ({
-        ...prev,
-        image: file
-      }));
-
+      setFormData({
+        ...formData,
+        images: [file],
+      });
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -59,31 +71,52 @@ function IssueForm({ isOpen, onClose, onSubmit, location }) {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit({
-      ...formData,
-      lat: location?.lat(),
-      lng: location?.lng(),
-      timestamp: new Date().toISOString(),
-    });
-    handleClose();
+    if (!location) {
+      setError('Please select a location on the map');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
+    try {
+      const issueData = {
+        ...formData,
+        lat: location.lat(),
+        lng: location.lng(),
+      };
+
+      await issues.create(issueData);
+      setSuccess(true);
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to create issue');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleClose = () => {
     setFormData({
+      title: '',
       description: '',
-      category: 'infrastructure',
-      severity: 'low',
-      image: null,
+      category: '',
+      severity: 'medium',
+      images: [],
     });
     setImagePreview(null);
+    setError('');
+    setSuccess(false);
     onClose();
   };
 
   return (
     <Dialog 
-      open={isOpen} 
+      open={open} 
       onClose={handleClose}
       maxWidth="sm"
       fullWidth
@@ -115,116 +148,131 @@ function IssueForm({ isOpen, onClose, onSubmit, location }) {
         </IconButton>
       </DialogTitle>
 
-      <form onSubmit={handleSubmit}>
-        <DialogContent dividers>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField
-              name="description"
-              label="Description"
-              multiline
-              rows={4}
-              value={formData.description}
+      <DialogContent>
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+              {error}
+            </Alert>
+          )}
+          
+          {success && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              Issue reported successfully!
+            </Alert>
+          )}
+
+          <TextField
+            fullWidth
+            label="Title"
+            name="title"
+            value={formData.title}
+            onChange={handleChange}
+            required
+            sx={{ mb: 2 }}
+          />
+
+          <TextField
+            fullWidth
+            label="Description"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            required
+            multiline
+            rows={4}
+            sx={{ mb: 2 }}
+          />
+
+          <TextField
+            fullWidth
+            label="Category"
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            required
+            sx={{ mb: 2 }}
+          />
+
+          <FormControl sx={{ mb: 2 }}>
+            <FormLabel>Severity</FormLabel>
+            <RadioGroup
+              name="severity"
+              value={formData.severity}
               onChange={handleChange}
-              required
-              fullWidth
-            />
-
-            <FormControl fullWidth>
-              <FormLabel>Category</FormLabel>
-              <Select
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                required
-              >
-                {categories.map((category) => (
-                  <MenuItem key={category.value} value={category.value}>
-                    {category.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl>
-              <FormLabel>Severity</FormLabel>
-              <RadioGroup
-                name="severity"
-                value={formData.severity}
-                onChange={handleChange}
-                row
-              >
-                <FormControlLabel 
-                  value="low" 
-                  control={<Radio />} 
-                  label="Low" 
-                />
-                <FormControlLabel 
-                  value="medium" 
-                  control={<Radio />} 
-                  label="Medium" 
-                />
-                <FormControlLabel 
-                  value="high" 
-                  control={<Radio />} 
-                  label="High" 
-                />
-              </RadioGroup>
-            </FormControl>
-
-            <Box>
-              <input
-                accept="image/*"
-                id="issue-image"
-                type="file"
-                hidden
-                onChange={handleImageChange}
+              row
+            >
+              <FormControlLabel 
+                value="low" 
+                control={<Radio />} 
+                label="Low" 
               />
-              <label htmlFor="issue-image">
-                <Button
-                  component="span"
-                  variant="outlined"
-                  startIcon={<ImageIcon />}
-                >
-                  Add Image
-                </Button>
-              </label>
-            </Box>
+              <FormControlLabel 
+                value="medium" 
+                control={<Radio />} 
+                label="Medium" 
+              />
+              <FormControlLabel 
+                value="high" 
+                control={<Radio />} 
+                label="High" 
+              />
+            </RadioGroup>
+          </FormControl>
 
-            {imagePreview && (
-              <Box sx={{ mt: 2 }}>
-                <img
-                  src={imagePreview}
-                  alt="Preview"
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '200px',
-                    borderRadius: '8px',
-                  }}
-                />
-              </Box>
-            )}
-
-            {location && (
-              <Typography variant="body2" color="textSecondary">
-                Location: {location.lat().toFixed(6)}, {location.lng().toFixed(6)}
-              </Typography>
-            )}
+          <Box>
+            <input
+              accept="image/*"
+              id="issue-image"
+              type="file"
+              hidden
+              onChange={handleImageChange}
+            />
+            <label htmlFor="issue-image">
+              <Button
+                component="span"
+                variant="outlined"
+                startIcon={<ImageIcon />}
+              >
+                Add Image
+              </Button>
+            </label>
           </Box>
-        </DialogContent>
 
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={handleClose} color="inherit">
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            variant="contained"
-            disabled={!formData.description || !location}
-          >
-            Submit Report
-          </Button>
-        </DialogActions>
-      </form>
+          {imagePreview && (
+            <Box sx={{ mt: 2 }}>
+              <img
+                src={imagePreview}
+                alt="Preview"
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '200px',
+                  borderRadius: '8px',
+                }}
+              />
+            </Box>
+          )}
+
+          {location && (
+            <Typography variant="body2" color="textSecondary" sx={{ mt: 2 }}>
+              Location: {location.lat().toFixed(6)}, {location.lng().toFixed(6)}
+            </Typography>
+          )}
+        </Box>
+      </DialogContent>
+
+      <DialogActions sx={{ p: 2 }}>
+        <Button onClick={handleClose}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          variant="contained"
+          disabled={loading || success}
+        >
+          {loading ? 'Submitting...' : 'Submit'}
+        </Button>
+      </DialogActions>
     </Dialog>
   );
 }

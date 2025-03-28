@@ -169,64 +169,64 @@ function Contact() {
                 Send us a Message
               </Typography>
 
-              {status.message && (
+            {status.message && (
                 <Alert
                   severity={status.type}
                   sx={{ mb: 3 }}
                   onClose={() => setStatus({ type: '', message: '' })}
                 >
-                  {status.message}
+                {status.message}
                 </Alert>
-              )}
+            )}
 
-              <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit}>
                 <Grid container spacing={3}>
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
                       label="Name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                    />
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                />
                   </Grid>
                   <Grid item xs={12} sm={6}>
                     <TextField
                       fullWidth
                       label="Email"
                       name="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                    />
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
                   </Grid>
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
                       label="Subject"
-                      name="subject"
-                      value={formData.subject}
-                      onChange={handleChange}
-                      required
-                    />
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  required
+                />
                   </Grid>
                   <Grid item xs={12}>
                     <TextField
                       fullWidth
                       label="Message"
-                      name="message"
+                  name="message"
                       multiline
                       rows={4}
-                      value={formData.message}
-                      onChange={handleChange}
-                      required
+                  value={formData.message}
+                  onChange={handleChange}
+                  required
                     />
                   </Grid>
                   <Grid item xs={12}>
                     <Button
-                      type="submit"
+                type="submit" 
                       variant="contained"
                       color="primary"
                       size="large"
@@ -237,7 +237,7 @@ function Contact() {
                     </Button>
                   </Grid>
                 </Grid>
-              </form>
+            </form>
             </Paper>
           </Grid>
         </Grid>

@@ -168,8 +168,8 @@ function Header({ user, onProfileClick, onLogout }) {
                   Logout
                 </NavButton>
               </>
-            ) : (
-              <>
+          ) : (
+            <>
                 <NavButton
                   component={RouterLink}
                   to="/login"
@@ -192,8 +192,8 @@ function Header({ user, onProfileClick, onLogout }) {
                 >
                   Sign Up
                 </NavButton>
-              </>
-            )}
+            </>
+          )}
           </Box>
         )}
       </Toolbar>

@@ -1,12 +1,13 @@
 import { useState, useCallback, useRef } from 'react';
 import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
-import { Box, Typography, CircularProgress, IconButton, TextField, InputAdornment } from '@mui/material';
+import { Box, Typography, CircularProgress, IconButton, TextField, InputAdornment, Snackbar, Alert, Button } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import SearchIcon from '@mui/icons-material/Search';
+import { useNavigate } from 'react-router-dom';
 
 const mapContainerStyle = {
   width: '100%',
-  height: '400px',
+  height: '100%',
   borderRadius: '8px',
   boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)'
 };
@@ -42,6 +43,8 @@ function MapContainer({ onMapClick, issues = [] }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [tempMarker, setTempMarker] = useState(null);
   const placesService = useRef(null);
+  const navigate = useNavigate();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   const { isLoaded, loadError } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -56,6 +59,11 @@ function MapContainer({ onMapClick, issues = [] }) {
   }, [tempMarker]);
 
   const handleMapClick = useCallback((e) => {
+    if (!onMapClick) {
+      setShowLoginPrompt(true);
+      return;
+    }
+    
     clearTempMarker();
     
     const newMarker = new window.google.maps.Marker({
@@ -69,7 +77,7 @@ function MapContainer({ onMapClick, issues = [] }) {
       },
       animation: window.google.maps.Animation.DROP
     });
-
+    
     setTempMarker(newMarker);
     onMapClick(e.latLng);
   }, [map, clearTempMarker, onMapClick]);
@@ -104,21 +112,21 @@ function MapContainer({ onMapClick, issues = [] }) {
     setMap(map);
     placesService.current = new window.google.maps.places.PlacesService(map);
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          setUserLocation(location);
-          
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const location = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+              setUserLocation(location);
+              
           const distance = getDistance(location, defaultCenter);
           if (distance < 10) {
             map.setCenter(location);
           }
-        },
-        () => {
+            },
+            () => {
           console.error('Error getting location');
         }
       );
@@ -141,6 +149,11 @@ function MapContainer({ onMapClick, issues = [] }) {
     return deg * (Math.PI / 180);
   };
 
+  const handleLoginClick = () => {
+    setShowLoginPrompt(false);
+    navigate('/login');
+  };
+
   if (loadError) {
     return (
       <Box sx={{ p: 3, textAlign: 'center' }}>
@@ -160,7 +173,7 @@ function MapContainer({ onMapClick, issues = [] }) {
   }
 
   return (
-    <Box sx={{ position: 'relative', mb: 3 }}>
+    <Box sx={{ position: 'relative', height: '100%' }}>
       <Box sx={{ 
         position: 'absolute', 
         top: 10, 
@@ -271,6 +284,25 @@ function MapContainer({ onMapClick, issues = [] }) {
           Click on the map to report an issue
         </Typography>
       </Box>
+
+      <Snackbar
+        open={showLoginPrompt}
+        autoHideDuration={6000}
+        onClose={() => setShowLoginPrompt(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          severity="info" 
+          onClose={() => setShowLoginPrompt(false)}
+          action={
+            <Button color="inherit" size="small" onClick={handleLoginClick}>
+              Login
+            </Button>
+          }
+        >
+          Please login to report an issue
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

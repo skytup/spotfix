@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { RouterProvider, createBrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import {
@@ -132,248 +132,288 @@ const theme = createTheme({
   },
 });
 
-function App() {
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+// Protected Route Component
+const ProtectedRouteComponent = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
 
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // First check if we have stored credentials
-        if (auth.isAuthenticated()) {
-          const storedUser = auth.getStoredUser();
-          setUser(storedUser);
-          
-          try {
-            // Then verify and update from server
-            const response = await auth.getProfile();
-            setUser(response.data);
-          } catch (error) {
-            console.error('Failed to fetch profile:', error);
-            // If profile fetch fails, clear everything
-            auth.logout();
-          }
+        const token = auth.getToken();
+        if (token) {
+          await auth.getProfile();
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
-        auth.logout();
-      } finally {
-        setLoading(false);
+        setIsAuthenticated(false);
       }
     };
-
     checkAuth();
   }, []);
 
-  const handleLogin = async (credentials) => {
-    try {
-      const response = await auth.login(credentials);
-      const { user } = response.data;
-      setUser(user);
-      // Show welcome message using the user's name
-      window.alert(`Welcome ${user.name}! You have successfully logged in.`);
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      await auth.logout();
-      setUser(null);
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
-
-  if (loading) {
+  if (isAuthenticated === null) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-          width: '100vw',
-        }}
-      >
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  const router = createBrowserRouter([
-    {
-      path: '/login',
-      element: <PublicRoute user={user}><Login onLogin={handleLogin} /></PublicRoute>
-    },
-    {
-      path: '/register',
-      element: <PublicRoute user={user}><Register /></PublicRoute>
-    },
-    {
-      path: '/reset-password',
-      element: <PublicRoute user={user}><ResetPassword /></PublicRoute>
-    },
-    {
-      path: '/',
-      element: (
-        <ProtectedRoute user={user}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <Header 
-              user={user}
-              onProfileClick={() => setIsProfileOpen(true)}
-              onLogout={handleLogout}
-            />
-            <Box 
-              component="main" 
-              sx={{ 
-                flexGrow: 1,
-                py: { xs: 2, sm: 4 },
-                px: { xs: 1, sm: 2 },
-                width: '100%',
-                maxWidth: '100%',
-                overflow: 'hidden'
-              }}
-            >
-              <Container 
-                maxWidth={false}
-                sx={{ 
-                  px: { xs: 1, sm: 2, md: 3 },
-                  width: '100%'
-                }}
-              >
-                <Typography
-                  variant="h3"
-                  component="h2"
-                  align="center"
-                  gutterBottom
-                  sx={{ 
-                    fontWeight: 700, 
-                    mb: 2,
-                    fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' }
-                  }}
-                >
-                  Report Issues
-                </Typography>
-                <Typography
-                  variant="h6"
-                  align="center"
-                  color="text.secondary"
-                  sx={{ 
-                    mb: 4,
-                    fontSize: { xs: '1rem', sm: '1.25rem' }
-                  }}
-                >
-                  Help improve your surroundings and earn Fix Points!
-                </Typography>
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
 
-                <Box sx={{ 
-                  width: '100%',
-                  height: { xs: '400px', sm: '500px', md: '600px' },
-                  mb: 4
-                }}>
-                  <MapContainer onMapClick={() => setIsFormOpen(true)} />
-                </Box>
+// Public Route Component
+const PublicRouteComponent = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(null);
 
-                <IssueList />
-                
-                <Box sx={{ 
-                  textAlign: 'center', 
-                  my: 4,
-                  px: { xs: 1, sm: 2 }
-                }}>
-                  <img
-                    style={{
-                      width: '150px',
-                      margin: '10px 0px',
-                      maxWidth: '90%',
-                      borderRadius: '10px',
-                      height: 'auto'
-                    }}
-                    src={spotFixLogo}
-                    alt="SpotFix Logo"
-                  />
-                </Box>
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = auth.getToken();
+        if (token) {
+          await auth.getProfile();
+          setIsAuthenticated(true);
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch (error) {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
-                <Gallery />
-              </Container>
-            </Box>
-            <Description />
-            <Footer />
-          </Box>
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: '/about',
-      element: (
-        <ProtectedRoute user={user}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <Header 
-              user={user}
-              onProfileClick={() => setIsProfileOpen(true)}
-              onLogout={handleLogout}
-            />
-            <About />
-            <Footer />
-          </Box>
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: '/contact',
-      element: (
-        <ProtectedRoute user={user}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <Header 
-              user={user}
-              onProfileClick={() => setIsProfileOpen(true)}
-              onLogout={handleLogout}
-            />
-            <Contact />
-            <Footer />
-          </Box>
-        </ProtectedRoute>
-      )
-    },
-    {
-      path: '/profile-settings',
-      element: (
-        <ProtectedRoute>
-          <ProfileSettings />
-        </ProtectedRoute>
-      )
+  if (isAuthenticated === null) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  return !isAuthenticated ? children : <Navigate to="/" />;
+};
+
+function App() {
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [showIssueForm, setShowIssueForm] = useState(false);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = auth.getToken();
+        if (token) {
+          const userData = await auth.getProfile();
+          setUser(userData);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
+
+  const handleLogin = async (credentials) => {
+    const response = await auth.login(credentials);
+    setUser(response.user);
+    return response;
+  };
+
+  const handleLogout = () => {
+    auth.logout();
+    setUser(null);
+  };
+
+  const handleMapClick = (location) => {
+    if (!user) {
+      return;
     }
-  ], {
-    future: {
-      v7_startTransition: true,
-      v7_relativeSplatPath: true,
-      v7_normalizeFormMethod: true,
-      v7_fetcherPersist: true,
-      v7_partialHydration: true
-    }
-  });
+    setSelectedLocation(location);
+    setShowIssueForm(true);
+  };
+
+  const handleIssueFormClose = () => {
+    setShowIssueForm(false);
+    setSelectedLocation(null);
+  };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <RouterProvider router={router}>
-        <ProfilePanel 
-          isOpen={isProfileOpen} 
-          onClose={() => setIsProfileOpen(false)}
-          user={user}
-        />
+      <Router>
+        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <Header 
+            user={user}
+            onProfileClick={() => setIsProfileOpen(true)}
+            onLogout={handleLogout}
+          />
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                  <Box 
+                    component="main" 
+                    sx={{ 
+                      flexGrow: 1,
+                      py: { xs: 2, sm: 4 },
+                      px: { xs: 1, sm: 2 },
+                      width: '100%',
+                      maxWidth: '100%',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <Container 
+                      maxWidth={false}
+                      sx={{ 
+                        px: { xs: 1, sm: 2, md: 3 },
+                        width: '100%'
+                      }}
+                    >
+                      <Typography
+                        variant="h3"
+                        component="h2"
+                        align="center"
+                        gutterBottom
+                        sx={{ 
+                          fontWeight: 700, 
+                          mb: 2,
+                          fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' }
+                        }}
+                      >
+                        Report Issues
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        align="center"
+                        color="text.secondary"
+                        sx={{ 
+                          mb: 4,
+                          fontSize: { xs: '1rem', sm: '1.25rem' }
+                        }}
+                      >
+                        Help improve your surroundings and earn Fix Points!
+                      </Typography>
 
-        <IssueForm 
-          isOpen={isFormOpen} 
-          onClose={() => setIsFormOpen(false)}
-          user={user}
-        />
-      </RouterProvider>
+                      <Box sx={{ 
+                        width: '100%',
+                        height: { xs: '400px', sm: '500px', md: '600px' },
+                        mb: 4
+                      }}>
+                        <MapContainer onMapClick={handleMapClick} />
+                      </Box>
+
+        <IssueList />
+        
+                      <Box sx={{ 
+                        textAlign: 'center', 
+                        my: 4,
+                        px: { xs: 1, sm: 2 }
+                      }}>
+          <img
+            style={{
+              width: '150px',
+              margin: '10px 0px',
+              maxWidth: '90%',
+                            borderRadius: '10px',
+                            height: 'auto'
+            }}
+                          src={spotFixLogo}
+                          alt="SpotFix Logo"
+          />
+                      </Box>
+
+        <Gallery />
+                    </Container>
+                  </Box>
+                  <Description />
+                  <Footer />
+                </Box>
+              }
+            />
+            <Route
+              path="/login"
+              element={
+                <PublicRouteComponent>
+                  <Login onLogin={handleLogin} />
+                </PublicRouteComponent>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicRouteComponent>
+                  <Register />
+                </PublicRouteComponent>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <PublicRouteComponent>
+                  <ResetPassword />
+                </PublicRouteComponent>
+              }
+            />
+            <Route
+              path="/about"
+              element={
+                <ProtectedRouteComponent>
+                  <About />
+                </ProtectedRouteComponent>
+              }
+            />
+            <Route
+              path="/contact"
+              element={
+                <ProtectedRouteComponent>
+                  <Contact />
+                </ProtectedRouteComponent>
+              }
+            />
+            <Route
+              path="/profile-settings"
+              element={
+                <ProtectedRouteComponent>
+                  <ProfileSettings />
+                </ProtectedRouteComponent>
+              }
+            />
+          </Routes>
+        </Box>
+
+        {user && (
+          <>
+      <ProfilePanel 
+        isOpen={isProfileOpen} 
+        onClose={() => setIsProfileOpen(false)} 
+              user={user}
+      />
+            {showIssueForm && selectedLocation && (
+      <IssueForm 
+                open={showIssueForm}
+                onClose={handleIssueFormClose}
+                location={selectedLocation}
+              />
+            )}
+          </>
+        )}
+      </Router>
     </ThemeProvider>
   );
 }

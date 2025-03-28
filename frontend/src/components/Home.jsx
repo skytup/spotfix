@@ -12,7 +12,7 @@ import MapContainer from './MapContainer';
 import IssuesList from './IssuesList';
 import { issues as issuesApi } from '../services/api';
 
-function Home() {
+function Home({ onMapClick }) {
   const [issues, setIssues] = useState([]);
   const [selectedIssue, setSelectedIssue] = useState(null);
   const theme = useTheme();
@@ -76,6 +76,7 @@ function Home() {
                 issues={issues}
                 selectedIssue={selectedIssue}
                 onIssueSelect={setSelectedIssue}
+                onMapClick={onMapClick}
               />
             </Paper>
           </Grid>

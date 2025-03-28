@@ -1,26 +1,18 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true,
-});
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 // Token management
 const TOKEN_KEY = 'spotfix_token';
 const USER_KEY = 'spotfix_user';
 const TOKEN_EXPIRY_KEY = 'spotfix_token_expiry';
 
-const setToken = (token, expiresIn = 7 * 24 * 60 * 60 * 1000) => { // Default 7 days
+export const setToken = (token, expiresIn = 7 * 24 * 60 * 60 * 1000) => { // Default 7 days
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(TOKEN_EXPIRY_KEY, Date.now() + expiresIn);
 };
 
-const getToken = () => {
+export const getToken = () => {
   const token = localStorage.getItem(TOKEN_KEY);
   const expiry = localStorage.getItem(TOKEN_EXPIRY_KEY);
   
@@ -36,6 +28,14 @@ const getToken = () => {
   
   return token;
 };
+
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true,
+});
 
 // Request interceptor for adding auth token
 api.interceptors.request.use(
@@ -126,23 +126,19 @@ export const auth = {
   getStoredUser: () => {
     const user = localStorage.getItem(USER_KEY);
     return user ? JSON.parse(user) : null;
-  }
+  },
+  getToken
 };
 
 // Issues endpoints
 export const issues = {
-  getAll: (page = 1, limit = 10) => api.get('/api/issues', { params: { page, limit } }),
+  getAll: () => api.get('/api/issues'),
   getById: (id) => api.get(`/api/issues/${id}`),
   create: (data) => api.post('/api/issues', data),
   update: (id, data) => api.put(`/api/issues/${id}`, data),
   delete: (id) => api.delete(`/api/issues/${id}`),
-  search: (query) => api.get('/api/issues/search', { params: { query } }),
-  uploadImage: (formData) => api.post('/api/issues/upload', formData),
-  getByUser: (userId, page = 1, limit = 10) => api.get(`/api/issues/user/${userId}`, { params: { page, limit } }),
-  getByLocation: (lat, lng, radius) => api.get('/api/issues/nearby', { params: { lat, lng, radius } }),
-  addComment: (issueId, comment) => api.post(`/api/issues/${issueId}/comments`, { comment }),
-  getComments: (issueId) => api.get(`/api/issues/${issueId}/comments`),
-  vote: (issueId, type) => api.post(`/api/issues/${issueId}/vote`, { type }),
+  getByUser: () => api.get('/api/issues/user'),
+  getByLocation: (lat, lng, radius) => api.get('/api/issues/location', { params: { lat, lng, radius } }),
 };
 
 export default api; 
