@@ -188,6 +188,7 @@ function Header({ user, onProfileClick, onLogout }) {
                   sx={{
                     fontSize: { xs: '0.8rem', sm: '0.9rem' },
                     padding: { xs: '4px 8px', sm: '6px 12px' },
+                    color: { sm: '#fff' }
                   }}
                 >
                   Sign Up

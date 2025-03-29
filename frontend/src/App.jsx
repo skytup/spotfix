@@ -1,94 +1,94 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
+import { useState, useEffect } from "react";
 import {
-  Box,
-  Container,
-  Typography,
-  CircularProgress,
-} from '@mui/material';
-import Header from './components/Header';
-import MapContainer from './components/MapContainer';
-import IssueList from './components/IssueList';
-import Gallery from './components/Gallery';
-import ProfilePanel from './components/ProfilePanel';
-import IssueForm from './components/IssueForm';
-import Footer from './components/Footer';
-import Description from './components/Description';
-import Login from './components/Login';
-import Register from './components/Register';
-import About from './components/About';
-import Contact from './components/Contact';
-import ResetPassword from './components/ResetPassword';
-import ProtectedRoute from './components/ProtectedRoute';
-import PublicRoute from './components/PublicRoute';
-import { auth } from './services/api';
-import spotFixLogo from './assets/spot-fix.png';
-import './styles/global.css';
-import ProfileSettings from './components/ProfileSettings';
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { ThemeProvider, createTheme } from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import { Box, Container, Typography, CircularProgress } from "@mui/material";
+import Header from "./components/Header";
+import MapContainer from "./components/MapContainer";
+import IssueList from "./components/IssueList";
+import Gallery from "./components/Gallery";
+import ProfilePanel from "./components/ProfilePanel";
+import IssueForm from "./components/IssueForm";
+import Footer from "./components/Footer";
+import Description from "./components/Description";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import About from "./components/About";
+import Contact from "./components/Contact";
+import ResetPassword from "./components/ResetPassword";
+import ProtectedRoute from "./components/ProtectedRoute";
+import PublicRoute from "./components/PublicRoute";
+import { auth } from "./services/api";
+import spotFixLogo from "./assets/spot-fix.png";
+import "./styles/global.css";
+import ProfileSettings from "./components/ProfileSettings";
 
 const theme = createTheme({
   palette: {
-    mode: 'light',
+    mode: "light",
     primary: {
-      main: '#00122e',
-      dark: '#3367d6',
-      light: '#5c90ff',
-      contrastText: '#ffffff',
+      main: "#00122e",
+      dark: "#3367d6",
+      light: "#5c90ff",
+      contrastText: "#ffffff",
     },
     secondary: {
-      main: '#34a853',
-      dark: '#2d8d47',
-      light: '#5abe74',
-      contrastText: '#ffffff',
+      main: "#34a853",
+      dark: "#2d8d47",
+      light: "#5abe74",
+      contrastText: "#ffffff",
     },
     error: {
-      main: '#ea4335',
+      main: "#ea4335",
     },
     background: {
-      default: '#f4f4f4',
-      paper: '#ffffff',
+      default: "#f4f4f4",
+      paper: "#ffffff",
     },
     text: {
-      primary: '#212121',
-      secondary: '#757575',
+      primary: "#212121",
+      secondary: "#757575",
     },
   },
   typography: {
     fontFamily: '"Segoe UI", "Roboto", "Helvetica", "Arial", sans-serif',
     h1: {
       fontWeight: 700,
-      fontSize: '2.5rem',
-      '@media (min-width:600px)': {
-        fontSize: '3.5rem',
+      fontSize: "2.5rem",
+      "@media (min-width:600px)": {
+        fontSize: "3.5rem",
       },
     },
     h2: {
       fontWeight: 700,
-      fontSize: '2rem',
-      '@media (min-width:600px)': {
-        fontSize: '2.5rem',
+      fontSize: "2rem",
+      "@media (min-width:600px)": {
+        fontSize: "2.5rem",
       },
     },
     h3: {
       fontWeight: 600,
-      fontSize: '1.75rem',
+      fontSize: "1.75rem",
     },
     h4: {
       fontWeight: 600,
-      fontSize: '1.5rem',
+      fontSize: "1.5rem",
     },
     h5: {
       fontWeight: 600,
-      fontSize: '1.25rem',
+      fontSize: "1.25rem",
     },
     h6: {
       fontWeight: 600,
-      fontSize: '1rem',
+      fontSize: "1rem",
     },
     button: {
-      textTransform: 'none',
+      textTransform: "none",
       fontWeight: 500,
     },
   },
@@ -100,32 +100,32 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 8,
-          textTransform: 'none',
+          textTransform: "none",
           fontWeight: 500,
-          padding: '8px 16px',
-          '&:hover': {
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+          padding: "8px 16px",
+          "&:hover": {
+            boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
           },
         },
         contained: {
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
         },
       },
     },
     MuiPaper: {
       styleOverrides: {
         root: {
-          boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.1)",
         },
       },
     },
     MuiAppBar: {
       styleOverrides: {
         root: {
-          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(10px)',
-          boxShadow: 'none',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.1)',
+          backgroundColor: "rgba(255, 255, 255, 0.8)",
+          backdropFilter: "blur(10px)",
+          boxShadow: "none",
+          borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
         },
       },
     },
@@ -155,7 +155,14 @@ const ProtectedRouteComponent = ({ children }) => {
 
   if (isAuthenticated === null) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -187,7 +194,14 @@ const PublicRouteComponent = ({ children }) => {
 
   if (isAuthenticated === null) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -212,7 +226,7 @@ function App() {
           setUser(userData);
         }
       } catch (error) {
-        console.error('Auth check failed:', error);
+        console.error("Auth check failed:", error);
       } finally {
         setLoading(false);
       }
@@ -246,7 +260,14 @@ function App() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+        }}
+      >
         <CircularProgress />
       </Box>
     );
@@ -256,8 +277,10 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Router>
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-          <Header 
+        <Box
+          sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
+        >
+          <Header
             user={user}
             onProfileClick={() => setIsProfileOpen(true)}
             onLogout={handleLogout}
@@ -266,23 +289,29 @@ function App() {
             <Route
               path="/"
               element={
-                <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-                  <Box 
-                    component="main" 
-                    sx={{ 
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    minHeight: "100vh",
+                  }}
+                >
+                  <Box
+                    component="main"
+                    sx={{
                       flexGrow: 1,
                       py: { xs: 2, sm: 4 },
                       px: { xs: 1, sm: 2 },
-                      width: '100%',
-                      maxWidth: '100%',
-                      overflow: 'hidden'
+                      width: "100%",
+                      maxWidth: "100%",
+                      overflow: "hidden",
                     }}
                   >
-                    <Container 
+                    <Container
                       maxWidth={false}
-                      sx={{ 
+                      sx={{
                         px: { xs: 1, sm: 2, md: 3 },
-                        width: '100%'
+                        width: "100%",
                       }}
                     >
                       <Typography
@@ -290,10 +319,10 @@ function App() {
                         component="h2"
                         align="center"
                         gutterBottom
-                        sx={{ 
-                          fontWeight: 700, 
+                        sx={{
+                          fontWeight: 700,
                           mb: 2,
-                          fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' }
+                          fontSize: { xs: "2rem", sm: "2.5rem", md: "3rem" },
                         }}
                       >
                         Report Issues
@@ -302,47 +331,51 @@ function App() {
                         variant="h6"
                         align="center"
                         color="text.secondary"
-                        sx={{ 
+                        sx={{
                           mb: 4,
-                          fontSize: { xs: '1rem', sm: '1.25rem' }
+                          fontSize: { xs: "1rem", sm: "1.25rem" },
                         }}
                       >
                         Help improve your surroundings and earn Fix Points!
                       </Typography>
 
-                      <Box sx={{ 
-                        width: '100%',
-                        height: { xs: '400px', sm: '500px', md: '600px' },
-                        mb: 4
-                      }}>
+                      <Box
+                        sx={{
+                          width: "100%",
+                          height: { xs: "400px", sm: "500px", md: "600px" },
+                          mb: 4,
+                        }}
+                      >
                         <MapContainer onMapClick={handleMapClick} />
                       </Box>
 
-        <IssueList />
-        
-                      <Box sx={{ 
-                        textAlign: 'center', 
-                        my: 4,
-                        px: { xs: 1, sm: 2 }
-                      }}>
-          <img
-            style={{
-              width: '150px',
-              margin: '10px 0px',
-              maxWidth: '90%',
-                            borderRadius: '10px',
-                            height: 'auto'
-            }}
+                      <IssueList />
+
+                      <Box
+                        sx={{
+                          textAlign: "center",
+                          my: 4,
+                          px: { xs: 1, sm: 2 },
+                        }}
+                      >
+                        <img
+                          style={{
+                            width: "150px",
+                            margin: "10px 0px",
+                            maxWidth: "90%",
+                            borderRadius: "10px",
+                            height: "auto",
+                          }}
                           src={spotFixLogo}
                           alt="SpotFix Logo"
-          />
+                        />
                       </Box>
 
-        <Gallery />
+                      <Gallery />
                     </Container>
                   </Box>
                   <Description />
-                  <Footer />
+                  {/* <Footer /> */}
                 </Box>
               }
             />
@@ -370,22 +403,8 @@ function App() {
                 </PublicRouteComponent>
               }
             />
-            <Route
-              path="/about"
-              element={
-                <ProtectedRouteComponent>
-                  <About />
-                </ProtectedRouteComponent>
-              }
-            />
-            <Route
-              path="/contact"
-              element={
-                <ProtectedRouteComponent>
-                  <Contact />
-                </ProtectedRouteComponent>
-              }
-            />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
             <Route
               path="/profile-settings"
               element={
@@ -399,13 +418,13 @@ function App() {
 
         {user && (
           <>
-      <ProfilePanel 
-        isOpen={isProfileOpen} 
-        onClose={() => setIsProfileOpen(false)} 
+            <ProfilePanel
+              isOpen={isProfileOpen}
+              onClose={() => setIsProfileOpen(false)}
               user={user}
-      />
+            />
             {showIssueForm && selectedLocation && (
-      <IssueForm 
+              <IssueForm
                 open={showIssueForm}
                 onClose={handleIssueFormClose}
                 location={selectedLocation}
@@ -413,6 +432,7 @@ function App() {
             )}
           </>
         )}
+        <Footer />
       </Router>
     </ThemeProvider>
   );

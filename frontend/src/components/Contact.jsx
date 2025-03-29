@@ -53,8 +53,8 @@ function Contact() {
     {
       icon: <EmailIcon sx={{ fontSize: 40 }} />,
       title: 'Email',
-      content: 'support@spotfix.com',
-      link: 'mailto:support@spotfix.com',
+      content: 'akash@skytup.com',
+      link: 'mailto:akash@skytup.com',
     },
     {
       icon: <PhoneIcon sx={{ fontSize: 40 }} />,
@@ -65,8 +65,8 @@ function Contact() {
     {
       icon: <LocationOnIcon sx={{ fontSize: 40 }} />,
       title: 'Address',
-      content: '123 Community Street, City, Country',
-      link: 'https://maps.google.com',
+      content: 'Chaudhary Charan Singh University, Meerut, India',
+      link: 'https://maps.app.goo.gl/1aHkM5PP4AyJJdAC7',
     },
   ];
 
